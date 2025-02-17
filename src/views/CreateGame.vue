@@ -1,6 +1,5 @@
 <template>
   <div class="create-game">
-    <h2>Create Game</h2>
     <div v-if="!sessionId">
       <button @click="createSession">Create New Session</button>
     </div>
@@ -38,6 +37,7 @@ async function createSession() {
     localStorage.setItem("playerId", hostId.value);
     // Store an isHost flag
     localStorage.setItem("isHost", "true");
+    localStorage.setItem("sessionId", sessionId.value);
 
     // Create a session document with hostId as the host, and add the host to the players array
     await setDoc(doc(db, "sessions", sessionId.value), {

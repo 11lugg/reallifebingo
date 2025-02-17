@@ -10,7 +10,7 @@
       />
     </div>
     <div class="buttons">
-      <button @click="generateBoard">Generate Board</button>
+      <button @click="generateBoard">Reset</button>
       <button @click="saveBoard">Save Board</button>
     </div>
   </div>
@@ -57,7 +57,7 @@ async function saveBoard() {
     await updateDoc(doc(db, "sessions", props.sessionId), {
       board: flatBoard,
     });
-    console.log("Board saved!");
+    alert("Board saved!");
   } catch (error) {
     console.error("Error saving board:", error);
   }

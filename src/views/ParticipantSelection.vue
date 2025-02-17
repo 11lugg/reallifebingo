@@ -5,7 +5,7 @@
       <ParticipantBoard :board="hostBoard" :selection="selection" />
     </div>
     <div v-else>
-      <p>Loading board and selection...</p>
+      <p>This participant has found a match yet...</p>
     </div>
     <button @click="goBack">Back to Lobby</button>
   </div>

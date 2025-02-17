@@ -4,9 +4,23 @@
       <h1>Real Life Bingo</h1>
       <!-- Navigation links (optional) -->
       <nav>
-        <router-link to="/">Home</router-link>
-        <router-link to="/create">Create Game</router-link>
-        <router-link to="/join">Join Game</router-link>
+        <template v-if="isLoggedIn">
+          <!-- Navigation for logged-in users -->
+          <!-- Optionally show a link to the current session if sessionId exists -->
+          <router-link v-if="sessionId" :to="`/lobby/${sessionId}`">
+            Lobby
+          </router-link>
+          <router-link v-if="sessionId" :to="`/game/${sessionId}`">
+            Game
+          </router-link>
+          <button @click="logout">Logout</button>
+        </template>
+        <template v-else>
+          <!-- Navigation for users not logged in -->
+          <router-link to="/">Home</router-link>
+          <router-link to="/create">Create Game</router-link>
+          <router-link to="/join">Join Game</router-link>
+        </template>
       </nav>
     </header>
     <main>
@@ -20,7 +34,42 @@
 </template>
 
 <script setup>
-// If you need to import global components or perform setup logic, do it here.
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
+
+const router = useRouter();
+const route = useRoute();
+
+const playerId = ref(localStorage.getItem("playerId") || "");
+const sessionId = ref(localStorage.getItem("sessionId") || "");
+
+onMounted(() => {
+  // Initialize on mount
+  playerId.value = localStorage.getItem("playerId") || "";
+  sessionId.value = localStorage.getItem("sessionId") || "";
+});
+
+// Watch for route changes and update the reactive variables
+watch(
+  () => route.fullPath,
+  () => {
+    playerId.value = localStorage.getItem("playerId") || "";
+    sessionId.value = localStorage.getItem("sessionId") || "";
+  }
+);
+
+const isLoggedIn = computed(() => {
+  return playerId.value.trim() !== "";
+});
+
+function logout() {
+  localStorage.removeItem("playerId");
+  localStorage.removeItem("isHost");
+  localStorage.removeItem("sessionId");
+  playerId.value = "";
+  sessionId.value = "";
+  router.push("/");
+}
 </script>
 
 <style>
@@ -32,19 +81,27 @@
 }
 
 header {
+  text-align: center;
   background-color: #f8f8f8;
   padding: 1rem;
 }
 
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
 nav a {
-  margin-right: 1rem;
   text-decoration: none;
   color: #333;
 }
 
 main {
   flex: 1;
+  display: flex;
   padding: 2rem;
+  justify-content: center;
 }
 
 footer {

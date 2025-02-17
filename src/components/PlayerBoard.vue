@@ -78,7 +78,7 @@ async function saveSelection() {
     await setDoc(doc(db, "sessions", sessionId, "selections", props.playerId), {
       selection: selection.value,
     });
-    console.log("Selection saved!");
+    alert("Selection saved!");
   } catch (error) {
     console.error("Error saving selection:", error);
   }
