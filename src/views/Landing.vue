@@ -8,6 +8,15 @@
 <script>
 export default {
   name: "Landing",
+  created() {
+    // Retrieve sessionId and playerId from localStorage
+    const sessionId = localStorage.getItem("sessionId");
+    const playerId = localStorage.getItem("playerId");
+    // If both exist, automatically redirect to the lobby
+    if (sessionId && playerId) {
+      this.$router.push(`/lobby/${sessionId.toUpperCase()}`);
+    }
+  },
   methods: {
     goToCreate() {
       this.$router.push("/create");

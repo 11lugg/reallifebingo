@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "real-life-bingo"
+    "default": "real-life-bingo",
+    "second-project": "lib-dem-bingo"
   }
 }

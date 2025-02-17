@@ -35,6 +35,12 @@ export default {
       if (docSnap.exists()) {
         const data = docSnap.data();
         this.players = data.players || [];
+      } else {
+        // If the session document has been deleted, clear local storage and redirect
+        localStorage.removeItem("playerId");
+        localStorage.removeItem("sessionId");
+        localStorage.removeItem("isHost");
+        this.$router.push("/");
       }
     });
   },

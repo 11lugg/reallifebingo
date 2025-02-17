@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <header>
+      <img src="./assets/image.png" />
       <h1>Lib Dem Canvassing Bingo</h1>
       <!-- Navigation links (optional) -->
       <nav>
@@ -13,6 +14,9 @@
           <router-link v-if="sessionId" :to="`/game/${sessionId}`">
             Game
           </router-link>
+          <button class="button" v-if="isHost && sessionId" @click="endGame">
+            End Game
+          </button>
         </template>
         <template v-else>
           <!-- Navigation for users not logged in -->
@@ -35,12 +39,17 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { deleteDoc, doc } from "firebase/firestore";
+import { db } from "./firebaseConfig";
 
 const router = useRouter();
 const route = useRoute();
 
 const playerId = ref(localStorage.getItem("playerId") || "");
 const sessionId = ref(localStorage.getItem("sessionId") || "");
+
+// isHost is true if localStorage indicates this user is the host.
+const isHost = computed(() => localStorage.getItem("isHost") === "true");
 
 onMounted(() => {
   // Initialize on mount
@@ -60,6 +69,36 @@ watch(
 const isLoggedIn = computed(() => {
   return playerId.value.trim() !== "";
 });
+
+// Function to log out the user.
+function logout() {
+  localStorage.removeItem("playerId");
+  localStorage.removeItem("sessionId");
+  localStorage.removeItem("isHost");
+  playerId.value = "";
+  sessionId.value = "";
+  router.push("/");
+}
+
+// Function to end the game.
+// This deletes the session document from Firestore.
+async function endGame() {
+  if (!sessionId.value) return;
+  if (
+    !confirm(
+      "Are you sure you want to end the game? This will delete the session."
+    )
+  )
+    return;
+  try {
+    await deleteDoc(doc(db, "sessions", sessionId.value));
+    console.log("Game ended.");
+    // After deleting the session, log out to clear localStorage and redirect.
+    logout();
+  } catch (error) {
+    console.error("Error ending game:", error);
+  }
+}
 </script>
 
 <style>
@@ -74,6 +113,14 @@ header {
   text-align: center;
   background-color: #f8f8f8;
   padding: 1rem;
+}
+
+.button {
+  color: red;
+  outline: none;
+  background: none;
+  cursor: pointer;
+  border: none;
 }
 
 nav {

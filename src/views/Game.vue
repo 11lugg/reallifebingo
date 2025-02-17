@@ -31,6 +31,12 @@ onMounted(() => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       hostBoard.value = data.board || [];
+    } else {
+      // If the session document has been deleted, clear local storage and redirect
+      localStorage.removeItem("playerId");
+      localStorage.removeItem("sessionId");
+      localStorage.removeItem("isHost");
+      this.$router.push("/");
     }
   });
 });

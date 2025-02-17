@@ -4,8 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode secondary",
     "build": "vite build",
+    "build:default": "vite build --mode default",
+    "build:secondary": "vite build --mode secondary",
+    "deploy:default": "firebase use default && npm run build:default && firebase deploy",
+    "deploy:second": "firebase use second-project && npm run build:secondary && firebase deploy",
     "preview": "vite preview"
   },
   "dependencies": {
