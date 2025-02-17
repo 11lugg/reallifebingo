@@ -52,18 +52,23 @@ function isSelected(index) {
   margin: 1rem 0;
 }
 .board-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  width: 100%;
+  max-width: 500px;
 }
 .board-cell {
-  width: 100px;
-  height: 100px;
-  margin: 5px;
+  width: 100%;
+  /* Remove fixed height and use min-height for flexibility */
+  min-height: 100px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  text-align: center;
   border: 1px solid #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  background-color: #fefefe;
+  box-sizing: border-box;
+  resize: none; /* Prevent user from manually resizing */
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
 }
 .board-cell.selected {
   background-color: #add8e6; /* Light blue highlight */

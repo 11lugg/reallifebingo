@@ -46,8 +46,12 @@ export default {
       this.$router.push(`/game/${this.sessionId}`);
     },
     viewParticipant(player) {
-      // We assume that each player object has a unique 'id' field.
-      this.$router.push(`/lobby/${this.sessionId}/participant/${player.id}`);
+      if (localStorage.getItem("playerId") === player.id) {
+        this.$router.push(`/game/${this.sessionId}`);
+      } else {
+        // We assume that each player object has a unique 'id' field.
+        this.$router.push(`/lobby/${this.sessionId}/participant/${player.id}`);
+      }
     },
   },
 };

@@ -1,16 +1,19 @@
 <template>
   <div class="bingo-board">
-    <div v-for="(row, rowIndex) in board" :key="rowIndex" class="bingo-row">
-      <input
-        v-for="(cell, colIndex) in row"
-        :key="colIndex"
-        v-model="board[rowIndex][colIndex]"
-        placeholder="Enter option"
-        class="bingo-cell"
-      />
+    <!-- Wrap the grid rows in a container that is horizontally scrollable -->
+    <div class="board-container">
+      <div v-for="(row, rowIndex) in board" :key="rowIndex" class="bingo-row">
+        <textarea
+          v-for="(cell, colIndex) in row"
+          :key="colIndex"
+          v-model="board[rowIndex][colIndex]"
+          placeholder="Enter option"
+          class="bingo-cell"
+        />
+      </div>
     </div>
     <div class="buttons">
-      <button @click="generateBoard">Reset</button>
+      <button @click="generateBoard">Reset Board</button>
       <button @click="saveBoard">Save Board</button>
     </div>
   </div>
@@ -52,7 +55,7 @@ async function saveBoard() {
     return;
   }
   try {
-    // Firestore does not support nested arrays, so flatten the board
+    // Flatten the board before saving, since Firestore doesn't support nested arrays
     const flatBoard = board.flat();
     await updateDoc(doc(db, "sessions", props.sessionId), {
       board: flatBoard,
@@ -69,24 +72,48 @@ async function saveBoard() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 1rem;
+  margin: 1rem 0;
 }
+
 .bingo-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  width: 100%;
+  max-width: 500px;
 }
+
 .bingo-cell {
-  width: 100px;
-  height: 100px;
-  margin: 5px;
-  font-size: 16px;
-  text-align: center;
+  width: 100%;
+  /* Remove fixed height and use min-height for flexibility */
+  min-height: 100px;
   padding: 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  resize: none; /* Prevent user from manually resizing */
+  overflow-wrap: break-word; /* Allow text to wrap */
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
 }
+
 .buttons {
   margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
 }
+
 button {
-  margin: 0 0.5rem;
   padding: 0.5rem 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .bingo-row {
+    max-width: 90vw;
+  }
+  .bingo-cell {
+    font-size: 0.9rem;
+  }
 }
 </style>

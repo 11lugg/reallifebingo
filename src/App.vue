@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <header>
-      <h1>Real Life Bingo</h1>
+      <h1>Lib Dem Canvassing Bingo</h1>
       <!-- Navigation links (optional) -->
       <nav>
         <template v-if="isLoggedIn">
@@ -13,7 +13,6 @@
           <router-link v-if="sessionId" :to="`/game/${sessionId}`">
             Game
           </router-link>
-          <button @click="logout">Logout</button>
         </template>
         <template v-else>
           <!-- Navigation for users not logged in -->
@@ -28,7 +27,7 @@
       <router-view />
     </main>
     <footer>
-      <p>&copy; 2025 Real Life Bingo</p>
+      <p>&copy; 2025 Lib Dem Canvassing Bingo</p>
     </footer>
   </div>
 </template>
@@ -61,15 +60,6 @@ watch(
 const isLoggedIn = computed(() => {
   return playerId.value.trim() !== "";
 });
-
-function logout() {
-  localStorage.removeItem("playerId");
-  localStorage.removeItem("isHost");
-  localStorage.removeItem("sessionId");
-  playerId.value = "";
-  sessionId.value = "";
-  router.push("/");
-}
 </script>
 
 <style>
@@ -100,7 +90,7 @@ nav a {
 main {
   flex: 1;
   display: flex;
-  padding: 2rem;
+  padding: 1rem, 2rem;
   justify-content: center;
 }
 
