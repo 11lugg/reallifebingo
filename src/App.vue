@@ -2,7 +2,7 @@
   <div id="app">
     <header>
       <img src="./assets/image.png" />
-      <h1>Lib Dem Canvassing Bingo</h1>
+      <h1>Canvassing Bingo</h1>
       <!-- Navigation links (optional) -->
       <nav>
         <template v-if="isLoggedIn">
