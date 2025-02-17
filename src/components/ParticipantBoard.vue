@@ -1,7 +1,12 @@
 <template>
-  <div class="display-board">
+  <div class="participant-board">
     <div v-for="(row, rowIndex) in gridBoard" :key="rowIndex" class="board-row">
-      <div v-for="(cell, colIndex) in row" :key="colIndex" class="board-cell">
+      <div
+        v-for="(cell, colIndex) in row"
+        :key="colIndex"
+        class="board-cell"
+        :class="{ selected: isSelected(rowIndex * 5 + colIndex) }"
+      >
         {{ cell }}
       </div>
     </div>
@@ -16,9 +21,13 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  selection: {
+    type: Array,
+    required: true,
+  },
 });
 
-// Convert a flat array of 25 elements into a 5×5 grid
+// Convert flat board array (25 items) into a 5×5 grid.
 const gridBoard = computed(() => {
   if (props.board.length === 25) {
     let grid = [];
@@ -29,10 +38,14 @@ const gridBoard = computed(() => {
   }
   return props.board;
 });
+
+function isSelected(index) {
+  return props.selection[index];
+}
 </script>
 
 <style scoped>
-.display-board {
+.participant-board {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -51,5 +64,8 @@ const gridBoard = computed(() => {
   justify-content: center;
   font-size: 16px;
   background-color: #fefefe;
+}
+.board-cell.selected {
+  background-color: #add8e6; /* Light blue highlight */
 }
 </style>

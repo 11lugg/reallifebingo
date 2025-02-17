@@ -1,4 +1,3 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import Landing from "../views/Landing.vue";
 import CreateGame from "../views/CreateGame.vue";
@@ -6,6 +5,7 @@ import JoinGame from "../views/JoinGame.vue";
 import Lobby from "../views/Lobby.vue";
 import Game from "../views/Game.vue";
 import NotFound from "../views/NotFound.vue";
+import ParticipantSelection from "../views/ParticipantSelection.vue";
 
 const routes = [
   { path: "/", name: "Landing", component: Landing },
@@ -13,6 +13,12 @@ const routes = [
   { path: "/join", name: "JoinGame", component: JoinGame },
   { path: "/lobby/:sessionId", name: "Lobby", component: Lobby, props: true },
   { path: "/game/:sessionId", name: "Game", component: Game, props: true },
+  {
+    path: "/lobby/:sessionId/participant/:playerId",
+    name: "ParticipantSelection",
+    component: ParticipantSelection,
+    props: true,
+  },
   { path: "/:catchAll(.*)", name: "NotFound", component: NotFound },
 ];
 

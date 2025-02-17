@@ -1,8 +1,6 @@
 <template>
   <div class="bingo-board">
-    <!-- Render each row of the board -->
     <div v-for="(row, rowIndex) in board" :key="rowIndex" class="bingo-row">
-      <!-- Render each cell as an input field -->
       <input
         v-for="(cell, colIndex) in row"
         :key="colIndex"
@@ -23,7 +21,6 @@ import { reactive, onMounted } from "vue";
 import { db } from "../firebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
 
-// Accept sessionId as a prop from the parent component.
 const props = defineProps({
   sessionId: {
     type: String,
@@ -33,9 +30,9 @@ const props = defineProps({
 
 const board = reactive([]);
 
-// Function to generate a 5x5 board filled with empty strings.
+// Generate a 5×5 board (2D array) of empty strings
 function generateBoard() {
-  board.length = 0; // clear the board
+  board.length = 0;
   for (let i = 0; i < 5; i++) {
     const row = [];
     for (let j = 0; j < 5; j++) {
@@ -55,7 +52,7 @@ async function saveBoard() {
     return;
   }
   try {
-    // Flatten the board (convert 2D array into a single array)
+    // Firestore does not support nested arrays, so flatten the board
     const flatBoard = board.flat();
     await updateDoc(doc(db, "sessions", props.sessionId), {
       board: flatBoard,
