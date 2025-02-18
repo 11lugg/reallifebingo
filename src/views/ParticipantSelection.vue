@@ -7,7 +7,7 @@
     <div v-else>
       <p>This participant has found a match yet...</p>
     </div>
-    <button @click="goBack">Back to Lobby</button>
+    <button class="lobby-btn" @click="goBack">Back to Lobby</button>
   </div>
 </template>
 
@@ -57,9 +57,16 @@ function goBack() {
 <style scoped>
 .participant-selection {
   text-align: center;
+  margin: 1rem;
 }
+
+.lobby-btn {
+  width: 100%;
+  height: 70px;
+  font-size: larger;
+}
+
 button {
-  margin-top: 1rem;
   padding: 0.5rem 1rem;
 }
 </style>

@@ -10,6 +10,8 @@
           <span @click="viewParticipant(player)">
             {{ index + 1 }} - {{ player.name }}
           </span>
+          <strong>({{ player.selectionCount }})</strong>
+
           <!-- Delete icon if host and the player isn't the host -->
           <button
             v-if="isHost && player.id !== currentPlayerId"
