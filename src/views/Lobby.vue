@@ -1,24 +1,49 @@
 <template>
   <div class="lobby">
     <h2>Lobby - Session: {{ sessionId }}</h2>
-    <h3>Players:</h3>
-    <ul>
-      <li v-for="(player, index) in players" :key="index">
-        <!-- Clicking on a player's name navigates to their selection view -->
-        <span @click="viewParticipant(player)">
-          {{ player.name }}
-        </span>
-        <!-- If the current user is host and the player isn't the host, show a delete icon -->
-        <button
-          v-if="isHost && player.id !== currentPlayerId"
-          class="delete-btn"
-          @click.stop="removePlayer(player)"
-          title="Remove Player"
-        >
-          ✖
-        </button>
-      </li>
-    </ul>
+
+    <!-- Leaderboard: Only display players with a selectionCount > 0, sorted descending -->
+    <div v-if="leaderboardPlayers.length">
+      <h3>Leaderboard</h3>
+      <ol class="leaderboard-list">
+        <li v-for="(player, index) in leaderboardPlayers" :key="player.id">
+          <span @click="viewParticipant(player)">
+            {{ index + 1 }} - {{ player.name }}
+          </span>
+          <!-- Delete icon if host and the player isn't the host -->
+          <button
+            v-if="isHost && player.id !== currentPlayerId"
+            class="delete-btn"
+            @click.stop="removePlayer(player)"
+            title="Remove Player"
+          >
+            ✖
+          </button>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Waiting players: those without a selectionCount or with a 0 count -->
+    <div v-if="remainingPlayers.length">
+      <h3>Players Awaiting Selection</h3>
+      <ul class="players-list">
+        <li v-for="(player, index) in remainingPlayers" :key="player.id">
+          <span @click="viewParticipant(player)">
+            {{ player.name }}
+          </span>
+          <!-- Delete icon if host and not deleting themselves -->
+          <button
+            v-if="isHost && player.id !== currentPlayerId"
+            class="delete-btn"
+            @click.stop="removePlayer(player)"
+            title="Remove Player"
+          >
+            ✖
+          </button>
+        </li>
+      </ul>
+    </div>
+
     <div>
       <button class="enter-btn" @click="enterGame">Enter Game</button>
     </div>
@@ -39,7 +64,6 @@ export default {
   },
   computed: {
     isHost() {
-      // Check if localStorage is available before using it.
       if (typeof window !== "undefined" && window.localStorage) {
         return localStorage.getItem("isHost") === "true";
       }
@@ -50,6 +74,18 @@ export default {
         return localStorage.getItem("playerId") || "";
       }
       return "";
+    },
+    // Leaderboard: players with selectionCount > 0, sorted descending.
+    leaderboardPlayers() {
+      return this.players
+        .filter((p) => p.selectionCount && p.selectionCount > 0)
+        .sort((a, b) => b.selectionCount - a.selectionCount);
+    },
+    // Remaining players: those without selectionCount or with selectionCount of 0.
+    remainingPlayers() {
+      return this.players.filter(
+        (p) => !p.selectionCount || p.selectionCount === 0
+      );
     },
   },
   created() {
@@ -71,7 +107,7 @@ export default {
           }
         }
       } else {
-        // If the session document has been deleted, clear local storage and redirect
+        // If the session document has been deleted, clear local storage and redirect.
         if (typeof window !== "undefined") {
           localStorage.removeItem("playerId");
           localStorage.removeItem("sessionId");
@@ -92,7 +128,6 @@ export default {
       if (localStorage.getItem("playerId") === player.id) {
         this.$router.push(`/game/${this.sessionId}`);
       } else {
-        // Navigate to the participant selection view for that player
         this.$router.push(`/lobby/${this.sessionId}/participant/${player.id}`);
       }
     },
@@ -118,15 +153,47 @@ export default {
   padding: 1rem;
 }
 
-/* Style the players list */
-ul {
+/* Leaderboard styling */
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 1rem;
+  max-width: 400px;
+  text-align: left;
+}
+
+.leaderboard-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #fffbea;
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.leaderboard-list li span {
+  text-decoration: none;
+  font-weight: bold;
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+}
+
+.score {
+  font-weight: 600;
+}
+
+/* Players list styling */
+.players-list {
   list-style: none;
   padding: 0;
   margin: 1rem auto;
   max-width: 400px;
 }
 
-li {
+.players-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -136,7 +203,7 @@ li {
   border-radius: 8px;
 }
 
-li span {
+.players-list li span {
   text-decoration: none;
   font-weight: bold;
   width: 100%;
@@ -144,7 +211,7 @@ li span {
   cursor: pointer;
 }
 
-/* Style the delete icon/button */
+/* Delete button styling */
 .delete-btn {
   background: transparent;
   border: none;
@@ -155,6 +222,7 @@ li span {
   margin-left: 1rem;
 }
 
+/* Enter game button styling */
 .enter-btn {
   width: 100%;
   height: 70px;
@@ -162,7 +230,7 @@ li span {
   font-size: larger;
 }
 
-/* Style the enter game button */
+/* General button styling */
 button {
   padding: 0.75rem 1.5rem;
   border: none;

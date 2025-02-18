@@ -22,7 +22,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
 // Props: hostBoard (flat array of 25 items) and playerId for the current player.
@@ -73,12 +73,33 @@ function toggleSelection(index) {
   selection.value[index] = !selection.value[index];
 }
 
-// Save the updated selection back to Firestore, then navigate back to the lobby.
+// Save the updated selection back to Firestore, including selection count,
+// then navigate back to the lobby.
 async function saveSelection() {
   try {
+    // Calculate the number of selected cells.
+    const count = selection.value.filter((cell) => cell === true).length;
+    // Save the player's selection and count in the subcollection.
     await setDoc(doc(db, "sessions", sessionId, "selections", props.playerId), {
       selection: selection.value,
+      selectionCount: count,
     });
+
+    // Now update the session document's players array.
+    const sessionRef = doc(db, "sessions", sessionId);
+    const sessionSnap = await getDoc(sessionRef);
+    if (sessionSnap.exists()) {
+      const data = sessionSnap.data();
+      // Update the player's object with the new selectionCount.
+      const updatedPlayers = data.players.map((player) => {
+        if (player.id === props.playerId) {
+          return { ...player, selectionCount: count };
+        }
+        return player;
+      });
+      await updateDoc(sessionRef, { players: updatedPlayers });
+    }
+
     alert("Selection saved!");
     router.push(`/lobby/${sessionId}`);
   } catch (error) {
@@ -124,9 +145,10 @@ const gridHostBoard = computed(() => {
   text-align: center;
   border: 1px solid #ccc;
   box-sizing: border-box;
-  resize: none; /* Prevent user from manually resizing */
-  overflow-wrap: break-word; /* Allow text to wrap */
+  resize: none;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
+  cursor: pointer;
 }
 
 .board-cell.selected {
@@ -137,10 +159,10 @@ const gridHostBoard = computed(() => {
   width: 100%;
   height: 70px;
   font-size: larger;
+  margin-top: 1rem;
 }
 
 button {
-  margin-top: 1rem;
   padding: 0.5rem 1rem;
 }
 </style>
