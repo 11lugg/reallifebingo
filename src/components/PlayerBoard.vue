@@ -15,13 +15,13 @@
         {{ cell }}
       </div>
     </div>
-    <button @click="saveSelection">Save Selection</button>
+    <button class="save-btn" @click="saveSelection">Save Selection</button>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
@@ -37,8 +37,9 @@ const props = defineProps({
   },
 });
 
-// Get sessionId from the route
+// Get sessionId from the route and set up the router.
 const route = useRoute();
+const router = useRouter();
 const sessionId = route.params.sessionId;
 
 // Initialize the selection as a flat array of 25 booleans (all false)
@@ -72,13 +73,14 @@ function toggleSelection(index) {
   selection.value[index] = !selection.value[index];
 }
 
-// Save the updated selection back to Firestore.
+// Save the updated selection back to Firestore, then navigate back to the lobby.
 async function saveSelection() {
   try {
     await setDoc(doc(db, "sessions", sessionId, "selections", props.playerId), {
       selection: selection.value,
     });
     alert("Selection saved!");
+    router.push(`/lobby/${sessionId}`);
   } catch (error) {
     console.error("Error saving selection:", error);
   }
@@ -93,7 +95,6 @@ const gridHostBoard = computed(() => {
     }
     return grid;
   }
-  // Fallback if hostBoard is not as expected.
   return [];
 });
 </script>
@@ -105,6 +106,7 @@ const gridHostBoard = computed(() => {
   align-items: center;
   margin: 1rem;
 }
+
 .board-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -112,6 +114,7 @@ const gridHostBoard = computed(() => {
   width: 100%;
   max-width: 500px;
 }
+
 .board-cell {
   width: 100%;
   /* Remove fixed height and use min-height for flexibility */
@@ -125,9 +128,17 @@ const gridHostBoard = computed(() => {
   overflow-wrap: break-word; /* Allow text to wrap */
   white-space: pre-wrap;
 }
+
 .board-cell.selected {
   background-color: #90ee90; /* Light green highlight for selected cells */
 }
+
+.save-btn {
+  width: 100%;
+  height: 70px;
+  font-size: larger;
+}
+
 button {
   margin-top: 1rem;
   padding: 0.5rem 1rem;

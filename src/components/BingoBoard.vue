@@ -21,6 +21,7 @@
 
 <script setup>
 import { reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { db } from "../firebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
 
@@ -30,6 +31,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const router = useRouter();
 
 const board = reactive([]);
 
@@ -55,12 +58,14 @@ async function saveBoard() {
     return;
   }
   try {
-    // Flatten the board before saving, since Firestore doesn't support nested arrays
+    // Firestore does not support nested arrays, so flatten the board
     const flatBoard = board.flat();
     await updateDoc(doc(db, "sessions", props.sessionId), {
       board: flatBoard,
     });
     alert("Board saved!");
+    // Automatically navigate back to the lobby after saving
+    router.push(`/lobby/${props.sessionId}`);
   } catch (error) {
     console.error("Error saving board:", error);
   }
@@ -75,6 +80,11 @@ async function saveBoard() {
   margin: 1rem 0;
 }
 
+.board-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
 .bingo-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -85,16 +95,15 @@ async function saveBoard() {
 
 .bingo-cell {
   width: 100%;
-  /* Remove fixed height and use min-height for flexibility */
   min-height: 100px;
   padding: 0.5rem;
   font-size: 1rem;
   text-align: center;
   border: 1px solid #ccc;
   box-sizing: border-box;
-  resize: none; /* Prevent user from manually resizing */
-  overflow-wrap: break-word; /* Allow text to wrap */
-  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+  resize: none;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .buttons {

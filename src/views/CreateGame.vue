@@ -1,20 +1,19 @@
 <template>
   <div class="create-game">
     <div v-if="!sessionId">
-      <button @click="createSession">Create New Session</button>
+      <p>Creating session...</p>
     </div>
     <div v-else>
       <p>Session ID: {{ sessionId }}</p>
       <p>Your Host ID: {{ hostId }}</p>
       <!-- Render the BingoBoard component for board customization -->
       <BingoBoard :sessionId="sessionId" />
-      <button @click="goToLobby">Proceed to Lobby</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { db } from "../firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -33,9 +32,8 @@ async function createSession() {
   sessionId.value = generateId(); // generate a session ID
   hostId.value = "Host"; // set host ID explicitly to "Host"
   try {
-    // Save hostId in localStorage so it can be used in other views (e.g., Game.vue)
+    // Save hostId and sessionId in localStorage
     localStorage.setItem("playerId", hostId.value);
-    // Store an isHost flag
     localStorage.setItem("isHost", "true");
     localStorage.setItem("sessionId", sessionId.value);
 
@@ -58,17 +56,17 @@ async function createSession() {
   }
 }
 
-function goToLobby() {
-  router.push(`/lobby/${sessionId.value}`);
-}
+// Automatically create a session when the component mounts
+onMounted(() => {
+  if (!sessionId.value) {
+    createSession();
+  }
+});
 </script>
 
 <style scoped>
 .create-game {
   text-align: center;
-}
-button {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
+  padding: 1rem;
 }
 </style>
