@@ -64,6 +64,7 @@ function goBack() {
   width: 100%;
   height: 70px;
   font-size: larger;
+  cursor: pointer;
 }
 
 button {

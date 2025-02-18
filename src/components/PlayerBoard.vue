@@ -160,6 +160,7 @@ const gridHostBoard = computed(() => {
   height: 70px;
   font-size: larger;
   margin-top: 1rem;
+  cursor: pointer;
 }
 
 button {
