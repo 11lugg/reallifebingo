@@ -13,6 +13,8 @@
 <script>
 import { db } from "../firebaseConfig";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { useSessionStore } from "../stores/sessionStore";
+import { getPersistentPlayerId } from "../utils/persistentId";
 
 export default {
   name: "JoinGame",
@@ -31,26 +33,43 @@ export default {
       const sessionSnap = await getDoc(sessionRef);
 
       if (sessionSnap.exists()) {
-        // Use the joiner's entered display name as the basis
         const chosenName = this.playerName.trim();
-        // Get current players from the session
-        const playersArray = sessionSnap.data().players || [];
-        const existingIds = playersArray.map((player) => player.id);
+        // Determine if the user is logging in as host based on their name (case-insensitive)
+        const isHostLogin = chosenName.toLowerCase() === "host";
 
-        // Start with the chosen name as the playerId
-        let finalId = chosenName;
-        let counter = 1;
-        // Append a number until we find a unique id
-        while (existingIds.includes(finalId)) {
-          finalId = chosenName + counter;
-          counter++;
+        // Retrieve a persistent id; this helper function creates one if it doesn't exist.
+        const persistentId = getPersistentPlayerId();
+
+        // Construct a base ID; for host, we use "Host-" prefix; for joiners, we use the chosen name.
+        const baseId = isHostLogin
+          ? `Host-${persistentId}`
+          : `${chosenName}-${persistentId}`;
+
+        // Check if a player with the same base ID already exists in the session.
+        const playersArray = sessionSnap.data().players || [];
+        const existingPlayer = playersArray.find((p) =>
+          p.id.startsWith(baseId)
+        );
+        let finalId;
+        if (existingPlayer) {
+          // Re-use the existing id.
+          finalId = existingPlayer.id;
+        } else {
+          finalId = baseId;
         }
 
-        // Save this joiner's unique id in localStorage
+        // Use the session store to set joiner session data.
+        const sessionStore = useSessionStore();
+        sessionStore.setSession({
+          sessionId: this.sessionId.toUpperCase(),
+          playerId: finalId,
+          isHost: isHostLogin,
+        });
+
+        // Save the session-specific data in localStorage.
         localStorage.setItem("playerId", finalId);
-        // Mark the user as a joiner
-        localStorage.setItem("isHost", "false");
-        localStorage.setItem("sessionId", this.sessionId);
+        localStorage.setItem("sessionId", this.sessionId.toUpperCase());
+        localStorage.setItem("isHost", isHostLogin ? "true" : "false");
 
         await updateDoc(sessionRef, {
           players: arrayUnion({ name: this.playerName, id: finalId }),

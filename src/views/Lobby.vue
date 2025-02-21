@@ -1,8 +1,8 @@
 <template>
   <div class="lobby">
-    <h2>Lobby - Session: {{ sessionId }}</h2>
+    <h2>Lobby - Session: {{ sessionStore.sessionId }}</h2>
 
-    <!-- Leaderboard: Only display players with a selectionCount > 0, sorted descending -->
+    <!-- Leaderboard: Only display players with a selectionCount > 0 -->
     <div v-if="leaderboardPlayers.length">
       <h3>Leaderboard</h3>
       <ol class="leaderboard-list">
@@ -14,7 +14,7 @@
 
           <!-- Delete icon if host and the player isn't the host -->
           <button
-            v-if="isHost && player.id !== currentPlayerId"
+            v-if="sessionStore.isHost && player.id !== sessionStore.playerId"
             class="delete-btn"
             @click.stop="removePlayer(player)"
             title="Remove Player"
@@ -25,17 +25,16 @@
       </ol>
     </div>
 
-    <!-- Waiting players: those without a selectionCount or with a 0 count -->
+    <!-- Waiting Players: Those with no selectionCount or 0 -->
     <div v-if="remainingPlayers.length">
       <h3>Players Awaiting Selection</h3>
       <ul class="players-list">
-        <li v-for="(player, index) in remainingPlayers" :key="player.id">
+        <li v-for="player in remainingPlayers" :key="player.id">
           <span @click="viewParticipant(player)">
             {{ player.name }}
           </span>
-          <!-- Delete icon if host and not deleting themselves -->
           <button
-            v-if="isHost && player.id !== currentPlayerId"
+            v-if="sessionStore.isHost && player.id !== sessionStore.playerId"
             class="delete-btn"
             @click.stop="removePlayer(player)"
             title="Remove Player"
@@ -52,101 +51,64 @@
   </div>
 </template>
 
-<script>
-import { db } from "../firebaseConfig";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+<script setup>
+import { computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { useSessionStore } from "../stores/sessionStore";
 
-export default {
-  name: "Lobby",
-  props: ["sessionId"],
-  data() {
-    return {
-      players: [],
-    };
-  },
-  computed: {
-    isHost() {
-      if (typeof window !== "undefined" && window.localStorage) {
-        return localStorage.getItem("isHost") === "true";
-      }
-      return false;
-    },
-    currentPlayerId() {
-      if (typeof window !== "undefined" && window.localStorage) {
-        return localStorage.getItem("playerId") || "";
-      }
-      return "";
-    },
-    // Leaderboard: players with selectionCount > 0, sorted descending.
-    leaderboardPlayers() {
-      return this.players
-        .filter((p) => p.selectionCount && p.selectionCount > 0)
-        .sort((a, b) => b.selectionCount - a.selectionCount);
-    },
-    // Remaining players: those without selectionCount or with selectionCount of 0.
-    remainingPlayers() {
-      return this.players.filter(
-        (p) => !p.selectionCount || p.selectionCount === 0
-      );
-    },
-  },
-  created() {
-    const sessionRef = doc(db, "sessions", this.sessionId);
-    this.unsubscribe = onSnapshot(sessionRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        this.players = data.players || [];
-        // If the current user is not the host and their playerId is no longer in the players array,
-        // clear localStorage and redirect to home.
-        if (!this.isHost) {
-          const currentId = this.currentPlayerId;
-          const stillInSession = this.players.some((p) => p.id === currentId);
-          if (!stillInSession) {
-            localStorage.removeItem("playerId");
-            localStorage.removeItem("sessionId");
-            localStorage.removeItem("isHost");
-            this.$router.push("/");
-          }
-        }
-      } else {
-        // If the session document has been deleted, clear local storage and redirect.
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("playerId");
-          localStorage.removeItem("sessionId");
-          localStorage.removeItem("isHost");
-        }
-        this.$router.push("/");
-      }
-    });
-  },
-  beforeUnmount() {
-    if (this.unsubscribe) this.unsubscribe();
-  },
-  methods: {
-    enterGame() {
-      this.$router.push(`/game/${this.sessionId}`);
-    },
-    viewParticipant(player) {
-      if (localStorage.getItem("playerId") === player.id) {
-        this.$router.push(`/game/${this.sessionId}`);
-      } else {
-        this.$router.push(`/lobby/${this.sessionId}/participant/${player.id}`);
-      }
-    },
-    async removePlayer(player) {
-      if (!confirm(`Are you sure you want to remove ${player.name}?`)) return;
-      const updatedPlayers = this.players.filter((p) => p.id !== player.id);
-      try {
-        await updateDoc(doc(db, "sessions", this.sessionId), {
-          players: updatedPlayers,
-        });
-        console.log(`Removed ${player.name}`);
-      } catch (error) {
-        console.error("Error removing player:", error);
-      }
-    },
-  },
-};
+// Use the Pinia store for centralized session state.
+const sessionStore = useSessionStore();
+const router = useRouter();
+
+// When the component mounts, start listening to the session.
+let unsubscribe = null;
+onMounted(() => {
+  if (sessionStore.sessionId) {
+    unsubscribe = sessionStore.listenToSession();
+  }
+});
+
+// Clean up the listener when unmounted.
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
+});
+
+// Computed property for leaderboard: players with selectionCount > 0, sorted descending.
+const leaderboardPlayers = computed(() => {
+  return sessionStore.players
+    .filter((player) => player.selectionCount && player.selectionCount > 0)
+    .sort((a, b) => b.selectionCount - a.selectionCount);
+});
+
+// Computed property for waiting players: those without selectionCount or with 0.
+const remainingPlayers = computed(() => {
+  return sessionStore.players.filter(
+    (player) => !player.selectionCount || player.selectionCount === 0
+  );
+});
+
+// Navigate to the game view.
+function enterGame() {
+  router.push(`/game/${sessionStore.sessionId}`);
+}
+
+// Navigate to the participant selection view or game view.
+function viewParticipant(player) {
+  if (sessionStore.playerId === player.id) {
+    router.push(`/game/${sessionStore.sessionId}`);
+  } else {
+    router.push(`/lobby/${sessionStore.sessionId}/participant/${player.id}`);
+  }
+}
+
+// Remove a player and update the session document via the store.
+async function removePlayer(player) {
+  if (!confirm(`Are you sure you want to remove ${player.name}?`)) return;
+  const updatedPlayers = sessionStore.players.filter((p) => p.id !== player.id);
+  await sessionStore.updatePlayers(updatedPlayers);
+}
 </script>
 
 <style scoped>

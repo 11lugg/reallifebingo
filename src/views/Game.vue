@@ -1,44 +1,50 @@
 <template>
   <div class="game">
-    <h2>Game In Progress - Session: {{ sessionId }}</h2>
-
+    <h2>Game In Progress - Session: {{ sessionStore.sessionId }}</h2>
     <!-- Interactive board for all players -->
     <div>
       <h3>Select Your Options</h3>
-      <PlayerBoard :hostBoard="hostBoard" :playerId="playerId" />
+      <PlayerBoard
+        :hostBoard="sessionStore.board"
+        :playerId="sessionStore.playerId"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { useSessionStore } from "../stores/sessionStore";
 import PlayerBoard from "../components/PlayerBoard.vue";
 
-const route = useRoute();
-const sessionId = route.params.sessionId;
-const hostBoard = ref([]);
+const router = useRouter();
+const sessionStore = useSessionStore();
 
-// Retrieve playerId from localStorage
-const playerId = localStorage.getItem("playerId") || "UnknownPlayer";
+// Assume sessionStore is already loaded; if not, load from localStorage.
+let unsubscribe = null;
 
-// Listen for updates to the host board in the session document.
 onMounted(() => {
-  const sessionRef = doc(db, "sessions", sessionId);
-  onSnapshot(sessionRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      hostBoard.value = data.board || [];
-    } else {
-      // If the session document has been deleted, clear local storage and redirect
-      localStorage.removeItem("playerId");
-      localStorage.removeItem("sessionId");
-      localStorage.removeItem("isHost");
-      this.$router.push("/");
-    }
-  });
+  if (sessionStore.sessionId) {
+    const sessionRef = doc(db, "sessions", sessionStore.sessionId);
+    unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        sessionStore.board = data.board || [];
+      } else {
+        sessionStore.clearSession();
+        router.push("/");
+      }
+    });
+  }
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 

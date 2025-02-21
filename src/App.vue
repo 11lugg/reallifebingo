@@ -1,25 +1,28 @@
 <template>
   <div id="app">
     <header>
-      <img src="./assets/image.png" />
+      <img src="./assets/image.png" alt="Logo" />
       <h1>Canvassing Bingo</h1>
-      <!-- Navigation links (optional) -->
       <nav>
         <template v-if="isLoggedIn">
-          <!-- Navigation for logged-in users -->
-          <!-- Optionally show a link to the current session if sessionId exists -->
-          <router-link v-if="sessionId" :to="`/lobby/${sessionId}`">
-            Lobby
-          </router-link>
-          <router-link v-if="sessionId" :to="`/game/${sessionId}`">
-            Game
-          </router-link>
-          <button class="button" v-if="isHost && sessionId" @click="endGame">
+          <!-- For logged-in users, show links to Lobby and Game if session exists -->
+          <router-link v-if="sessionId" :to="`/lobby/${sessionId}`"
+            >Lobby</router-link
+          >
+          <router-link v-if="sessionId" :to="`/game/${sessionId}`"
+            >Game</router-link
+          >
+          <!-- Show End Game button only for host when a session is active -->
+          <button v-if="isHost && sessionId" class="button" @click="endGame">
             End Game
+          </button>
+          <!-- Logout button -->
+          <button v-if="sessionId" class="button" @click="logout">
+            Logout
           </button>
         </template>
         <template v-else>
-          <!-- Navigation for users not logged in -->
+          <!-- For users not logged in -->
           <router-link to="/">Home</router-link>
           <router-link to="/create">Create Game</router-link>
           <router-link to="/join">Join Game</router-link>
@@ -27,7 +30,7 @@
       </nav>
     </header>
     <main>
-      <!-- This is where your routed views will be rendered -->
+      <!-- Routed views will be rendered here -->
       <router-view />
     </main>
     <footer>
@@ -37,53 +40,65 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import { useSessionStore } from "./stores/sessionStore";
 
 const router = useRouter();
 const route = useRoute();
+const sessionStore = useSessionStore();
 
-const playerId = ref(localStorage.getItem("playerId") || "");
-const sessionId = ref(localStorage.getItem("sessionId") || "");
-
-// isHost is true if localStorage indicates this user is the host.
-const isHost = computed(() => localStorage.getItem("isHost") === "true");
-
+// Load initial session data from localStorage via the store
 onMounted(() => {
-  // Initialize on mount
-  playerId.value = localStorage.getItem("playerId") || "";
-  sessionId.value = localStorage.getItem("sessionId") || "";
+  sessionStore.loadFromLocalStorage();
 });
 
-// Watch for route changes and update the reactive variables
+// Watch for route changes to update the session data if needed
 watch(
   () => route.fullPath,
   () => {
-    playerId.value = localStorage.getItem("playerId") || "";
-    sessionId.value = localStorage.getItem("sessionId") || "";
+    sessionStore.loadFromLocalStorage();
   }
 );
 
-const isLoggedIn = computed(() => {
-  return playerId.value.trim() !== "";
+// Listen for changes to localStorage in other tabs
+
+function onStorageChange(event) {
+  if (
+    event.key === "sessionId" ||
+    event.key === "playerId" ||
+    event.key === "isHost"
+  ) {
+    sessionStore.loadFromLocalStorage();
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", onStorageChange);
+}
+
+onUnmounted(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("storage", onStorageChange);
+  }
 });
 
-// Function to log out the user.
+// Computed properties for convenience.
+const isLoggedIn = computed(() => sessionStore.isLoggedIn);
+const sessionId = computed(() => sessionStore.sessionId);
+const isHost = computed(() => sessionStore.isHost);
+
+// Logout function: clear session data in the store and navigate to root.
 function logout() {
-  localStorage.removeItem("playerId");
-  localStorage.removeItem("sessionId");
-  localStorage.removeItem("isHost");
-  playerId.value = "";
-  sessionId.value = "";
+  sessionStore.clearSession();
   router.push("/");
 }
 
-// Function to end the game.
-// This deletes the session document from Firestore.
+// End game function: deletes the session document, then logs out.
 async function endGame() {
-  if (!sessionId.value) return;
+  if (!sessionStore.sessionId) return;
   if (
     !confirm(
       "Are you sure you want to end the game? This will delete the session."
@@ -91,9 +106,8 @@ async function endGame() {
   )
     return;
   try {
-    await deleteDoc(doc(db, "sessions", sessionId.value));
+    await deleteDoc(doc(db, "sessions", sessionStore.sessionId));
     console.log("Game ended.");
-    // After deleting the session, log out to clear localStorage and redirect.
     logout();
   } catch (error) {
     console.error("Error ending game:", error);
@@ -137,7 +151,7 @@ nav a {
 main {
   flex: 1;
   display: flex;
-  padding: 1rem, 2rem;
+  padding: 1rem 2rem;
   justify-content: center;
 }
 

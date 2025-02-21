@@ -1,64 +1,65 @@
 <template>
   <div class="create-game">
-    <div v-if="!sessionId">
+    <div v-if="!sessionStore.sessionId">
       <p>Creating session...</p>
     </div>
     <div v-else>
-      <p>Session ID: {{ sessionId }}</p>
-      <p>Your Host ID: {{ hostId }}</p>
+      <p>Session ID: {{ sessionStore.sessionId }}</p>
+      <p>Your Host ID: {{ sessionStore.playerId }}</p>
       <!-- Render the BingoBoard component for board customization -->
-      <BingoBoard :sessionId="sessionId" />
+      <BingoBoard :sessionId="sessionStore.sessionId" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted } from "vue";
+import { useSessionStore } from "../stores/sessionStore";
 import { db } from "../firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import BingoBoard from "../components/BingoBoard.vue";
+import { getPersistentPlayerId } from "../utils/persistentId";
 
-const router = useRouter();
-const sessionId = ref("");
-const hostId = ref("");
+const sessionStore = useSessionStore();
 
-// Helper function to generate a random 6-character session ID
 function generateId() {
   return Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
 async function createSession() {
-  sessionId.value = generateId(); // generate a session ID
-  hostId.value = "Host"; // set host ID explicitly to "Host"
-  try {
-    // Save hostId and sessionId in localStorage
-    localStorage.setItem("playerId", hostId.value);
-    localStorage.setItem("isHost", "true");
-    localStorage.setItem("sessionId", sessionId.value);
+  const newSessionId = generateId();
+  // For the host, use a persistent id. We'll prefix it with "Host-" so it's clear.
+  const persistentHostId = "Host-" + getPersistentPlayerId();
 
-    // Create a session document with hostId as the host, and add the host to the players array
-    await setDoc(doc(db, "sessions", sessionId.value), {
-      host: hostId.value,
-      players: [{ name: "Host", id: hostId.value }],
+  // Set session data in the store
+  sessionStore.setSession({
+    sessionId: newSessionId,
+    playerId: persistentHostId,
+    isHost: true,
+  });
+
+  try {
+    // Create the session document with the host info and an empty board.
+    await setDoc(doc(db, "sessions", newSessionId), {
+      host: persistentHostId,
+      players: [{ name: "Host", id: persistentHostId }],
       drawnNumbers: [],
       createdAt: serverTimestamp(),
-      board: null, // Board will be customized and saved later
+      board: null,
     });
     console.log(
       "Session created with ID:",
-      sessionId.value,
+      newSessionId,
       "and host ID:",
-      hostId.value
+      persistentHostId
     );
   } catch (error) {
     console.error("Error creating session:", error);
   }
 }
 
-// Automatically create a session when the component mounts
 onMounted(() => {
-  if (!sessionId.value) {
+  if (!sessionStore.sessionId) {
     createSession();
   }
 });

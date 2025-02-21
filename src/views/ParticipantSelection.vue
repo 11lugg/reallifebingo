@@ -5,7 +5,7 @@
       <ParticipantBoard :board="hostBoard" :selection="selection" />
     </div>
     <div v-else>
-      <p>This participant has found a match yet...</p>
+      <p>This participant has not made any selections yet...</p>
     </div>
     <button class="lobby-btn" @click="goBack">Back to Lobby</button>
   </div>
@@ -26,17 +26,13 @@ const playerId = route.params.playerId;
 const hostBoard = ref([]);
 const selection = ref([]);
 
-// Fetch host board and participant selection data from Firestore.
 async function fetchData() {
-  // Get the host board from the session document.
   const sessionRef = doc(db, "sessions", sessionId);
   const sessionSnap = await getDoc(sessionRef);
   if (sessionSnap.exists()) {
     const data = sessionSnap.data();
     hostBoard.value = data.board || [];
   }
-
-  // Get the participant's selection from the subcollection.
   const selectionRef = doc(db, "sessions", sessionId, "selections", playerId);
   const selectionSnap = await getDoc(selectionRef);
   if (selectionSnap.exists()) {
