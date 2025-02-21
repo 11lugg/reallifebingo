@@ -151,7 +151,6 @@ nav a {
 main {
   flex: 1;
   display: flex;
-  padding: 1rem 2rem;
   justify-content: center;
 }
 

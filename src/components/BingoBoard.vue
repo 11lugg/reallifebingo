@@ -102,7 +102,6 @@ async function saveBoard() {
   border: 1px solid #ccc;
   box-sizing: border-box;
   resize: none;
-  overflow-wrap: break-word;
   white-space: pre-wrap;
 }
 
@@ -114,15 +113,5 @@ async function saveBoard() {
 
 button {
   padding: 0.5rem 1rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .bingo-row {
-    max-width: 90vw;
-  }
-  .bingo-cell {
-    font-size: 0.9rem;
-  }
 }
 </style>

@@ -15,12 +15,13 @@ import { db } from "../firebaseConfig";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useSessionStore } from "../stores/sessionStore";
 import { getPersistentPlayerId } from "../utils/persistentId";
+import { titleCase } from "../utils/index";
 
 export default {
   name: "JoinGame",
   data() {
     return {
-      sessionId: "",
+      sessionId: this.$route.query.sessionId || "",
       playerName: "",
       errorMessage: "",
     };
@@ -33,29 +34,23 @@ export default {
       const sessionSnap = await getDoc(sessionRef);
 
       if (sessionSnap.exists()) {
-        const chosenName = this.playerName.trim();
-        // Determine if the user is logging in as host based on their name (case-insensitive)
-        const isHostLogin = chosenName.toLowerCase() === "host";
-
-        // Retrieve a persistent id; this helper function creates one if it doesn't exist.
+        const chosenName = titleCase(this.playerName.trim());
+        // Retrieve a persistent id; this helper creates one if it doesn't exist.
         const persistentId = getPersistentPlayerId();
+        // Construct a base id (without counter)
+        const baseId = `${chosenName}-${persistentId}`;
+        const isHost = titleCase(this.playerName) === "Host";
 
-        // Construct a base ID; for host, we use "Host-" prefix; for joiners, we use the chosen name.
-        const baseId = isHostLogin
-          ? `Host-${persistentId}`
-          : `${chosenName}-${persistentId}`;
-
-        // Check if a player with the same base ID already exists in the session.
+        // Get current players and check if one already exists with the baseId (or baseId with a counter)
         const playersArray = sessionSnap.data().players || [];
-        const existingPlayer = playersArray.find((p) =>
-          p.id.startsWith(baseId)
+        // Look for an existing entry that exactly matches baseId or starts with baseId followed by a hyphen.
+        const existingPlayer = playersArray.find(
+          (p) => p.id === baseId || p.id.startsWith(`${baseId}-`)
         );
-        let finalId;
+        let finalId = baseId;
         if (existingPlayer) {
-          // Re-use the existing id.
+          // If an entry already exists, reuse that ID
           finalId = existingPlayer.id;
-        } else {
-          finalId = baseId;
         }
 
         // Use the session store to set joiner session data.
@@ -63,17 +58,21 @@ export default {
         sessionStore.setSession({
           sessionId: this.sessionId.toUpperCase(),
           playerId: finalId,
-          isHost: isHostLogin,
+          isHost: isHost,
         });
-
-        // Save the session-specific data in localStorage.
         localStorage.setItem("playerId", finalId);
         localStorage.setItem("sessionId", this.sessionId.toUpperCase());
-        localStorage.setItem("isHost", isHostLogin ? "true" : "false");
+        localStorage.setItem("isHost", isHost);
 
-        await updateDoc(sessionRef, {
-          players: arrayUnion({ name: this.playerName, id: finalId }),
-        });
+        // Only add a new player entry if it doesn't already exist.
+        if (!playersArray.some((player) => player.id === finalId)) {
+          await updateDoc(sessionRef, {
+            players: arrayUnion({
+              name: titleCase(this.playerName),
+              id: finalId,
+            }),
+          });
+        }
         this.$router.push(`/lobby/${this.sessionId.toUpperCase()}`);
       } else {
         this.errorMessage =

@@ -1,6 +1,11 @@
 <template>
   <div class="lobby">
-    <h2>Lobby - Session: {{ sessionStore.sessionId }}</h2>
+    <h2>
+      Lobby - Session:
+      <span class="session-id" @click="copyUrl">{{
+        sessionStore.sessionId
+      }}</span>
+    </h2>
 
     <!-- Leaderboard: Only display players with a selectionCount > 0 -->
     <div v-if="leaderboardPlayers.length">
@@ -52,7 +57,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useSessionStore } from "../stores/sessionStore";
 
@@ -67,6 +72,17 @@ onMounted(() => {
     unsubscribe = sessionStore.listenToSession();
   }
 });
+
+// Optionally, add a watcher to redirect if the session is cleared.
+
+watch(
+  () => sessionStore.sessionId,
+  (newSessionId) => {
+    if (!newSessionId) {
+      router.push("/");
+    }
+  }
+);
 
 // Clean up the listener when unmounted.
 onUnmounted(() => {
@@ -108,6 +124,20 @@ async function removePlayer(player) {
   if (!confirm(`Are you sure you want to remove ${player.name}?`)) return;
   const updatedPlayers = sessionStore.players.filter((p) => p.id !== player.id);
   await sessionStore.updatePlayers(updatedPlayers);
+}
+
+// Copy session URL to clipboard.
+function copyUrl() {
+  // Construct a URL with the sessionId as a query parameter
+  const url = `${window.location.origin}/join?sessionId=${sessionStore.sessionId}`;
+  navigator.clipboard
+    .writeText(url)
+    .then(() => {
+      alert("Game URL copied to clipboard!");
+    })
+    .catch((error) => {
+      console.error("Failed to copy game URL:", error);
+    });
 }
 </script>
 
@@ -200,5 +230,12 @@ button {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.session-id {
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 800;
 }
 </style>
